@@ -1,76 +1,218 @@
 #!/usr/bin/python3
-"""Amenities"""
-from api.v1.views import app_views
-from flask import request, jsonify, abort
-from models import storage, amenity
+"""
+This is module amenities
+"""
+from api.v1.views import (app_views, Amenity, storage)
+from flask import (abort, jsonify, make_response, request)
 
 
 @app_views.route('/amenities', methods=['GET'], strict_slashes=False)
-def getallamenities():
-    """Gets all amenities"""
-    res = []
-    for i in storage.all("Amenity").values():
-        res.append(i.to_dict())
-
-    return jsonify(res)
-
-
 @app_views.route('/amenities/<amenity_id>', methods=['GET'],
                  strict_slashes=False)
-def getamenity(amenity_id=None):
-    """Gets an amenity"""
+def view_amenity(amenity_id=None):
+    """Example endpoint returning a list of all amenities or of one specified
+    Retrieves a list of all amenties or of one specified by amenity_id
+    ---
+    parameters:
+      - name: amenity_id
+        in: path
+        type: string
+        enum: ["all", cf701d1a-3c19-4bac-bd99-15321f1140f2", None]
+        required: true
+        default: None
+
+    definitions:
+
+      Amenity:
+        type: object
+        properties:
+          __class__:
+            type: string
+            description: The string of class object
+          created_at:
+            type: string
+            description: The date the object created
+          email:
+            type: string
+          first_name:
+            type: string
+          last_name:
+            type: string
+          id:
+            type: string
+            description: the id of the user
+          updated_at:
+            type: string
+            description: The date the object was updated
+            items:
+              $ref: '#/definitions/Color'
+      Color:
+        type: string
+    responses:
+      200:
+        description: A list of dicts or dict, each dict is an amenity
+        schema:
+          $ref: '#/definitions/Amenity'
+        examples:
+            [{"__class__": "Amenity",
+              "created_at": "2017-03-25T02:17:06",
+              "id": "cf701d1a-3c19-4bac-bd99-15321f1140f2",
+              "name": "Dog(s)",
+              "updated_at": "2017-03-25T02:17:06"}]
+    """
+    if amenity_id is None:
+        all_amenities = [state.to_json() for state
+                         in storage.all("Amenity").values()]
+        return jsonify(all_amenities)
     s = storage.get("Amenity", amenity_id)
     if s is None:
         abort(404)
-    else:
-        return jsonify(s.to_dict())
+    return jsonify(s.to_json())
 
 
 @app_views.route('/amenities/<amenity_id>', methods=['DELETE'],
                  strict_slashes=False)
-def deleteamenity(amenity_id=None):
-    """Deletes an amenity"""
-    s = storage.get("Amenity", amenity_id)
-    if s is None:
+def delete_amenity(amenity_id=None):
+    """Example endpoint deleting one amenity
+    Deletes a review based on the amenity_id
+    ---
+    definitions:
+      Amenity:
+        type: object
+      Color:
+        type: string
+      items:
+        $ref: '#/definitions/Color'
+
+    responses:
+      200:
+        description: An empty dictionary
+        schema:
+          $ref: '#/definitions/City'
+        examples:
+            {}
+    """
+    amenity = storage.get("Amenity", amenity_id)
+    if amenity is None:
         abort(404)
-    else:
-        storage.delete(obj)
-        storage.save()
-        return jsonify({}), 200
+    storage.delete(amenity)
+    return jsonify({}), 200
 
 
 @app_views.route('/amenities', methods=['POST'], strict_slashes=False)
-def createamenity():
-    """Create an amenity"""
-    s = request.get_json(silent=True)
-    if s is None:
-        abort(400, "Not a JSON")
-    elif "name" not in s.keys():
-        abort(400, "Missing name")
-    else:
-        new_s = amenities.Amenity(**s)
-        storage.new(new_s)
-        storage.save()
-        return jsonify(new_s.to_dict()), 201
+def create_amenity():
+    """Example endpoint Creates an amenity
+    Creates an amenity based on amenity_id with the JSON body
+    ---
+    definitions:
+
+      Amenity:
+        type: object
+        properties:
+          __class__:
+            type: string
+            description: The string of class object
+          created_at:
+            type: string
+            description: The date the object created
+          email:
+            type: string
+          first_name:
+            type: string
+          last_name:
+            type: string
+          id:
+            type: string
+            description: the id of the user
+          updated_at:
+            type: string
+            description: The date the object was updated
+            items:
+              $ref: '#/definitions/Color'
+      Color:
+        type: string
+    responses:
+      201:
+        description: A list of dicts or dict, each dict is an amenity
+        schema:
+          $ref: '#/definitions/Amenity'
+        examples:
+            [{"__class__": "Amenity",
+              "created_at": "2017-03-25T02:17:06",
+              "id": "cf701d1a-3c19-4bac-bd99-15321f1140f2",
+              "name": "Dog(s)",
+              "updated_at": "2017-03-25T02:17:06"}]
+    """
+    try:
+        r = request.get_json()
+    except:
+        r = None
+    if r is None:
+        return "Not a JSON", 400
+    if 'name' not in r.keys():
+        return "Missing name", 400
+    s = Amenity(**r)
+    s.save()
+    return jsonify(s.to_json()), 201
 
 
 @app_views.route('/amenities/<amenity_id>', methods=['PUT'],
                  strict_slashes=False)
-def updateamenity(amenity_id=None):
-    """Update an amenity"""
-    obj = storage.get("Amenity", amenity_id)
-    if obj is None:
-        abort(404)
+def update_amenity(amenity_id=None):
+    """Example endpoint updates an amenity
+    Updates an amenity based on amenity_id with the JSON body
+    ---
+    definitions:
 
-    s = request.get_json(silent=True)
-    if s is None:
-        abort(400, "Not a JSON")
-    else:
-        for k, v in s.items():
-            if k in ['id', 'created_at', 'updated_at']:
-                pass
-            else:
-                setattr(obj, k, v)
-        storage.save()
-        res = obj.to_dict()
-        return jsonify(res), 200
+      Amenity:
+        type: object
+        properties:
+          __class__:
+            type: string
+            description: The string of class object
+          created_at:
+            type: string
+            description: The date the object created
+          email:
+            type: string
+          first_name:
+            type: string
+          last_name:
+            type: string
+          id:
+            type: string
+            description: the id of the user
+          updated_at:
+            type: string
+            description: The date the object was updated
+            items:
+              $ref: '#/definitions/Color'
+      Color:
+        type: string
+    responses:
+      200:
+        description: A list of a dict, the dict is an amenity
+        schema:
+          $ref: '#/definitions/Amenity'
+        examples:
+            [{"__class__": "Amenity",
+              "created_at": "2017-03-25T02:17:06",
+              "id": "cf701d1a-3c19-4bac-bd99-15321f1140f2",
+              "name": "Dog(s)",
+              "updated_at": "2017-03-25T02:17:06"}]
+    """
+    try:
+        r = request.get_json()
+    except:
+        r = None
+    if r is None:
+        return "Not a JSON", 400
+    a = storage.get("Amenity", amenity_id)
+    if a is None:
+        abort(404)
+    for k in ("id", "created_at", "updated_at"):
+        r.pop(k, None)
+    for k, v in r.items():
+        setattr(a, k, v)
+    a.save()
+    return jsonify(a.to_json()), 200
